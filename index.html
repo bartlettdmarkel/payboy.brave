@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#c6c0b4">
+<title>PAYBOY // payboy.brave</title>
+<meta name="description" content="Pay Bart. Cash apps, crypto wallets, exchange sign-ups.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================
+   PAYBOY — DMG edition, one-screen mobile
+   ON  : original Game Boy LCD  #9bbc0f / #8bac0f / #306230 / #0f380f
+   OFF : Miami Vice neon        #ff2d95 / #00f0ff / #1b0733
+   ========================================================== */
+:root{
+  --shell:#c9c3b6; --shell-hi:#e2ddd1; --shell-lo:#9d9788; --shell-edge:#77736a;
+  --bezel:#3d3a42; --bezel-hi:#565360;
+  --ab:#9b2257; --ab-lo:#67143b;
+  --dark:#232329; --grey:#8f8f99;
+  --led:#e04a3f;
+  --sc0:#9bbc0f; --sc1:#8bac0f; --sc2:#306230; --sc3:#0f380f;
+  --glow:none;
+  --gap:6px;
+}
+html[data-mode="night"]{
+  --sc0:#1b0733; --sc1:#ff2d95; --sc2:#00f0ff; --sc3:#ffe9fb;
+  --led:#00f0ff;
+  --glow:0 0 6px currentColor;
+  /* atomic-grape translucent shell */
+  --shell:rgba(124,62,190,.40); --shell-hi:rgba(198,148,255,.52); --shell-lo:rgba(68,24,116,.58);
+  --shell-edge:rgba(212,158,255,.75);
+  --dark:rgba(42,16,68,.62); --grey:rgba(158,116,208,.5);
+  --ab:rgba(255,45,149,.55); --ab-lo:rgba(118,20,88,.62);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  height:100dvh;
+  background:#101116;
+  font-family:'VT323',ui-monospace,monospace;
+  display:flex;align-items:center;justify-content:center;
+  padding:5px;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ---------------- shell ---------------- */
+.gb{
+  width:min(392px,100%);height:100%;
+  position:relative;
+  display:flex;flex-direction:column;
+  background:linear-gradient(157deg,var(--shell-hi),var(--shell) 34%,var(--shell-lo));
+  border:2px solid var(--shell-edge);
+  border-radius:12px 12px 54px 12px;
+  padding:5px 9px 7px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.5), inset 0 -3px 0 rgba(0,0,0,.2), 0 6px 22px rgba(0,0,0,.7);
+  transition:background .5s,border-color .5s,box-shadow .5s;
+}
+.gb > *:not(.guts){position:relative;z-index:1}
+
+/* visible internals — only show through the translucent night shell */
+.guts{
+  position:absolute;inset:4px;z-index:0;opacity:0;pointer-events:none;overflow:hidden;
+  border-radius:10px 10px 50px 10px;transition:opacity .5s;
+}
+html[data-mode="night"] .guts{opacity:1}
+.guts .board{
+  position:absolute;inset:0;
+  background:
+    repeating-linear-gradient(90deg,transparent 0 19px,rgba(0,255,190,.15) 19px 21px),
+    repeating-linear-gradient(0deg,transparent 0 27px,rgba(0,255,190,.09) 27px 29px),
+    linear-gradient(180deg,rgba(30,8,52,.5),rgba(12,3,26,.65));
+}
+.guts .chip{position:absolute;background:rgba(14,4,28,.66);border:1px solid rgba(0,255,190,.28);border-radius:2px}
+.guts .cap{position:absolute;border-radius:50%;background:rgba(255,45,149,.28);border:1px solid rgba(255,45,149,.5)}
+
+/* power rail across the top edge */
+.top{display:flex;align-items:center;gap:5px;padding:0 2px 4px;flex:0 0 auto}
+.top-txt{font-family:'Press Start 2P',monospace;font-size:5px;color:#6d6a62;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.ico{width:9px;height:9px;fill:currentColor;flex:0 0 auto}
+.top-txt.mode{font-size:6px;letter-spacing:.06em}
+.slider{
+  width:56px;height:15px;padding:0;cursor:pointer;position:relative;overflow:hidden;
+  background:linear-gradient(180deg,#b8b2a4,#8f8a7d);
+  border:2px solid var(--shell-edge);border-radius:3px;
+}
+.slider:focus-visible{outline:2px solid var(--ab);outline-offset:2px}
+.knob{
+  position:absolute;top:1px;left:1px;width:24px;height:9px;
+  background:repeating-linear-gradient(90deg,#6f6c64 0 2px,#a5a196 2px 4px);
+  border:1px solid #4a4842;
+  transform:translateX(23px);
+  transition:transform .14s steps(3,end);
+}
+html[data-mode="night"] .knob{transform:translateX(0)}
+.top-rule{flex:1;height:2px;background:rgba(0,0,0,.16);border-radius:2px}
+
+/* ---------------- side volume wheel ---------------- */
+.gb > .vol{
+  position:absolute;right:-5px;top:21%;z-index:4;
+  width:15px;height:58px;padding:0;cursor:pointer;overflow:hidden;
+  background:linear-gradient(90deg,#84806f,#c6c0b1 55%,#7c776b);
+  border:2px solid var(--shell-edge);border-left:none;border-radius:0 8px 8px 0;
+  box-shadow:2px 2px 6px rgba(0,0,0,.45);
+  transition:background .5s,border-color .5s;
+}
+.vol .ribs{
+  position:absolute;inset:3px 0;
+  background:repeating-linear-gradient(180deg,#5f5c55 0 3px,#b3aea1 3px 7px);
+  transition:transform .25s steps(4,end),opacity .25s;
+}
+.vol:active{transform:translateX(1px)}
+.vol:focus-visible{outline:2px solid var(--ab);outline-offset:2px}
+html[data-snd="off"] .vol .ribs{transform:translateY(10px);opacity:.4}
+html[data-snd="off"] .speaker i{opacity:.3}
+html[data-mode="night"] .gb > .vol{
+  background:linear-gradient(90deg,rgba(96,44,158,.6),rgba(206,164,255,.55) 55%,rgba(84,36,140,.6));
+  box-shadow:2px 2px 10px rgba(178,64,255,.5);
+}
+html[data-mode="night"] .vol .ribs{background:repeating-linear-gradient(180deg,rgba(138,86,200,.8) 0 3px,rgba(232,204,255,.8) 3px 7px)}
+
+/* ---------------- bezel (DMG-accurate) ---------------- */
+.bezel{
+  flex:1;min-height:0;
+  display:flex;flex-direction:column;
+  background:linear-gradient(160deg,var(--bezel-hi),var(--bezel));
+  border-radius:8px 8px 26px 8px;
+  padding:6px 10px 5px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.45);
+}
+/* the two angled stripes, upper-left of the bezel */
+.stripes{display:flex;gap:4px;height:9px;margin:0 0 5px 2px;flex:0 0 auto}
+.stripes i{display:block;width:5px;height:100%;transform:skewX(-20deg)}
+.stripes i:first-child{background:#2b3a8f}
+.stripes i:last-child{background:#8c1c3e}
+
+.lcd-row{flex:1;min-height:0;display:flex;gap:7px}
+/* battery LED column, left of the screen */
+.batt{flex:0 0 13px;display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:8px}
+.led{width:8px;height:8px;border-radius:50%;background:var(--led);box-shadow:0 0 7px var(--led);transition:background .45s,box-shadow .45s}
+.batt span{font-family:'Press Start 2P',monospace;font-size:5px;color:#a6a1ad;writing-mode:vertical-rl;letter-spacing:.14em}
+
+.lcd{
+  position:relative;flex:1;min-width:0;overflow:hidden;
+  background:var(--sc0);border:2px solid #14131a;
+  display:flex;flex-direction:column;
+  transition:background .45s linear;
+}
+html[data-mode="night"] .lcd{background:linear-gradient(180deg,#1b0733 0%,#3a0b52 62%,#7a1163 100%)}
+.lcd::after{ /* glass glare */
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:9;
+  background:linear-gradient(118deg,rgba(255,255,255,.13) 0 20%,transparent 20.5%);
+}
+.lcd::before{ /* dot matrix */
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:8;opacity:.13;
+  background-image:linear-gradient(rgba(0,0,0,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.6) 1px,transparent 1px);
+  background-size:3px 3px;
+}
+/* caption below the screen */
+.caption{
+  flex:0 0 auto;text-align:center;margin-top:5px;
+  font-family:'Press Start 2P',monospace;font-size:5px;color:#a6a1ad;letter-spacing:.08em;
+}
+
+/* ---------------- moving background ---------------- */
+.bg{position:absolute;inset:0;z-index:0;pointer-events:none}
+.orb{
+  position:absolute;top:22px;right:16px;width:22px;height:22px;background:var(--sc2);
+  box-shadow:0 -5px 0 var(--sc2),0 5px 0 var(--sc2),-5px 0 0 var(--sc2),5px 0 0 var(--sc2);
+  animation:bob 7s ease-in-out infinite;transition:background .45s,box-shadow .45s;
+}
+@keyframes bob{50%{transform:translateY(5px)}}
+/* night: striped Miami sun, no pixel cross */
+html[data-mode="night"] .orb{
+  width:54px;height:54px;border-radius:50%;top:16px;right:12px;
+  background:linear-gradient(180deg,#ffe24a,#ff2d95 62%,#8a1bd6);
+  box-shadow:0 0 26px rgba(255,45,149,.75);
+  -webkit-mask-image:repeating-linear-gradient(180deg,#000 0 6px,transparent 6px 8px);
+  mask-image:repeating-linear-gradient(180deg,#000 0 6px,transparent 6px 8px);
+}
+
+.clouds{position:absolute;inset:0;transition:opacity .45s}
+html[data-mode="night"] .clouds{opacity:0}
+.cloud{
+  position:absolute;width:5px;height:5px;background:var(--sc1);
+  box-shadow:5px 0 var(--sc1),10px 0 var(--sc1),15px 0 var(--sc1),5px -5px var(--sc1),10px -5px var(--sc1),10px -10px var(--sc1),-5px 0 var(--sc1);
+  animation:drift linear infinite;
+}
+@keyframes drift{from{transform:translateX(-30px)}to{transform:translateX(320px)}}
+
+.stars{position:absolute;inset:0;opacity:0;transition:opacity .45s}
+html[data-mode="night"] .stars{opacity:1}
+.star{position:absolute;width:2px;height:2px;background:#fff;animation:tw 2.6s steps(2,end) infinite}
+@keyframes tw{0%,100%{opacity:.2}50%{opacity:1}}
+
+.ground{
+  position:absolute;left:0;right:0;bottom:0;height:42px;
+  background:repeating-linear-gradient(90deg,var(--sc2) 0 4px,transparent 4px 8px) 0 0/8px 4px repeat-x,
+             linear-gradient(180deg,var(--sc1),var(--sc2));
+  border-top:2px solid var(--sc3);
+  animation:roll 1.6s linear infinite;transition:background .45s,border-color .45s;
+}
+@keyframes roll{to{background-position-x:-8px,0}}
+/* night: neon perspective grid */
+html[data-mode="night"] .ground{
+  height:44%;border-top:2px solid #00f0ff;box-shadow:0 -8px 24px rgba(0,240,255,.28);
+  background:
+    repeating-linear-gradient(90deg,transparent 0 26px,rgba(0,240,255,.55) 26px 28px),
+    repeating-linear-gradient(0deg,transparent 0 16px,rgba(255,45,149,.45) 16px 18px),
+    linear-gradient(180deg,#2a0740,#12021f);
+  transform:perspective(90px) rotateX(58deg);transform-origin:bottom center;
+  animation:gridroll 1.9s linear infinite;
+}
+@keyframes gridroll{to{background-position:0 0,0 18px,0 0}}
+
+.palms{position:absolute;bottom:0;left:0;right:0;height:64%;opacity:0;transition:opacity .45s}
+html[data-mode="night"] .palms{opacity:1}
+.palms svg{position:absolute;bottom:22%;fill:#12021f}
+.palms .p1{left:2px;width:34px}
+.palms .p2{right:4px;width:26px;bottom:26%}
+
+/* ---------------- screen UI ---------------- */
+.ui{position:relative;z-index:3;flex:1;min-height:0;display:flex;flex-direction:column;opacity:1;transition:opacity .3s}
+.ui.hidden{opacity:0;pointer-events:none}
+
+.hud{
+  display:flex;justify-content:space-between;align-items:baseline;gap:6px;
+  padding:4px 6px;background:transparent;color:var(--sc3);flex:0 0 auto;
+  border-bottom:2px solid var(--sc3);
+  text-shadow:1px 1px 0 var(--sc0),-1px -1px 0 var(--sc0),1px -1px 0 var(--sc0),-1px 1px 0 var(--sc0);
+  transition:color .45s,border-color .45s;
+}
+html[data-mode="night"] .hud{color:#00f0ff;border-bottom:2px solid #ff2d95;text-shadow:0 0 8px currentColor,0 0 3px #1b0733,0 0 3px #1b0733}
+.hud b{font-family:'Press Start 2P',monospace;font-size:7px}
+.hud span{font-size:13px;opacity:.85}
+
+.tabs{display:flex;gap:3px;padding:5px 3px 0;flex:0 0 auto}
+.tab{
+  flex:1;min-width:0;font-family:'Press Start 2P',monospace;font-size:12px;line-height:1;
+  background:var(--sc1);color:var(--sc3);border:2px solid var(--sc3);border-bottom:none;
+  padding:13px 0;cursor:pointer;transition:background .3s,color .3s;
+  overflow:hidden;white-space:nowrap;
+}
+.tab[aria-selected="true"]{
+  background:var(--sc3);color:var(--sc0);
+  text-shadow:1px 0 currentColor,-1px 0 currentColor,0 1px currentColor,0 -1px currentColor;
+}
+@media (max-width:380px){.tab{font-size:11px;padding:12px 0}}
+@media (max-width:340px){.tab{font-size:9px;padding:10px 0}}
+html[data-mode="night"] .tab{background:rgba(27,7,51,.6);color:#00f0ff;border-color:#ff2d95;text-shadow:var(--glow)}
+html[data-mode="night"] .tab[aria-selected="true"]{
+  background:#ff2d95;color:#1b0733;
+  text-shadow:1px 0 currentColor,-1px 0 currentColor,0 1px currentColor,0 -1px currentColor;
+}
+.tab:focus-visible{outline:2px solid var(--sc3);outline-offset:1px}
+
+.view{flex:1;min-height:0;overflow-y:auto;padding:5px;scrollbar-width:none}
+.view::-webkit-scrollbar{display:none}
+.card{
+  background:var(--sc0);border:2px solid var(--sc3);padding:7px;color:var(--sc3);
+  transition:background .3s,color .3s,border-color .3s;
+}
+html[data-mode="night"] .card{background:rgba(27,7,51,.72);color:#ffe9fb;border-color:#ff2d95;box-shadow:0 0 12px rgba(255,45,149,.35)}
+.card h2{font-family:'Press Start 2P',monospace;font-size:11px;margin-bottom:6px;text-shadow:var(--glow)}
+.hint{font-size:17px;line-height:1.1;opacity:.9;margin-bottom:7px}
+
+.row{
+  display:block;cursor:pointer;
+  border:3px solid var(--sc2);padding:7px 8px;margin-bottom:6px;
+}
+.row-top{display:flex;align-items:center;gap:8px}
+html[data-mode="night"] .row{border-color:rgba(0,240,255,.5)}
+.row[data-sel="1"]{background:var(--sc3);color:var(--sc0);border-color:var(--sc3)}
+html[data-mode="night"] .row[data-sel="1"]{background:#00f0ff;color:#1b0733;border-color:#00f0ff;box-shadow:0 0 14px rgba(0,240,255,.6)}
+.row[data-sel="1"] .caret{visibility:visible}
+.caret{visibility:hidden;font-family:'Press Start 2P',monospace;font-size:10px;flex:0 0 11px}
+.row-name{flex:1;min-width:0;font-family:'Press Start 2P',monospace;font-size:10px;line-height:1.2}
+.row-sub{font-size:19px;line-height:1.05;word-break:break-all;text-shadow:1px 0 0 currentColor;margin-top:5px}
+.tag{font-family:'Press Start 2P',monospace;font-size:8px;border:2px solid currentColor;padding:4px 5px;flex:0 0 auto}
+.note{font-size:15px;line-height:1.1;opacity:.85;margin-top:6px;border-top:2px dashed currentColor;padding-top:5px}
+@media (max-width:340px){
+  .card h2{font-size:9px}
+  .hint{font-size:15px}
+  .row-name{font-size:9px}
+  .row-sub{font-size:17px}
+  .tag{font-size:7px}
+}
+
+/* boot + cascade overlays */
+#rain{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.26;transition:opacity .5s}
+#rain.intro{opacity:1;z-index:6}
+.boot{
+  position:absolute;inset:0;z-index:7;background:var(--sc0);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .3s;
+}
+.boot.done{opacity:0;pointer-events:none}
+.boot-word{
+  font-family:'Press Start 2P',monospace;font-size:13px;color:var(--sc3);
+  transform:translateY(-140%);
+}
+.boot.drop .boot-word{animation:fall 1s cubic-bezier(.5,0,.9,.4) forwards}
+@keyframes fall{to{transform:translateY(0)}}
+
+.deal{
+  flex:0 0 auto;text-align:center;
+  font-family:'Press Start 2P',monospace;font-size:8px;line-height:1.9;letter-spacing:.02em;
+  color:#ffcf33;background:#0f380f;
+  border-top:2px solid #ffb300;padding:7px 4px;
+  text-shadow:0 1px 0 #000;
+  animation:dealpulse 1.6s steps(2,end) infinite;
+}
+@keyframes dealpulse{0%,62%{color:#ffcf33}63%,100%{color:#fff36b}}
+html[data-mode="night"] .deal{
+  color:#ffe24a;border-top-color:#ff2d95;background:#170529;
+  text-shadow:0 1px 0 #000;
+  animation:dealpulseN 1.6s steps(2,end) infinite;
+}
+@keyframes dealpulseN{0%,62%{color:#ffe24a}63%,100%{color:#5df3ff}}
+@media (max-width:340px){.deal{font-size:7px}}
+
+/* cartridge swap on tab change */
+.swap{
+  position:absolute;inset:0;z-index:6;pointer-events:none;
+  background:var(--sc0);opacity:0;visibility:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+}
+.swap.go{visibility:visible;animation:swapflash .68s steps(1,end) forwards}
+@keyframes swapflash{0%{opacity:1}84%{opacity:1}100%{opacity:0}}
+
+/* per-cartridge pixel glyph */
+.glyph{opacity:0;color:var(--sc3);display:block}
+.picon{display:grid;line-height:0}
+.picon i{display:block}
+.picon i.on{background:currentColor}
+.swap.go .glyph{animation:glyphflash .58s steps(1,end) .26s forwards}
+@keyframes glyphflash{
+  0%{opacity:0}  9%{opacity:1}  22%{opacity:0}
+  36%{opacity:1} 50%{opacity:0}
+  64%{opacity:1} 100%{opacity:1}
+}
+html[data-mode="night"] .glyph{color:#00f0ff;filter:drop-shadow(0 0 6px #00f0ff)}
+
+.cart{
+  width:64px;height:48px;position:relative;
+  background:var(--sc2);border:3px solid var(--sc3);border-radius:3px 3px 9px 3px;
+  transform:translateY(-180%);
+}
+.cart::before{content:"";position:absolute;left:8px;right:8px;top:7px;height:13px;background:var(--sc0);border:2px solid var(--sc3)}
+.cart::after{content:"";position:absolute;left:15px;right:15px;bottom:5px;height:6px;background:var(--sc3)}
+.swap.go .cart{animation:cartin .44s cubic-bezier(.35,1.5,.5,1) forwards}
+@keyframes cartin{
+  0%{transform:translateY(-180%)}
+  55%{transform:translateY(8%)}
+  75%{transform:translateY(-7%)}
+  100%{transform:translateY(0)}
+}
+html[data-mode="night"] .swap{background:#1b0733}
+html[data-mode="night"] .cart{background:rgba(255,45,149,.4);border-color:#00f0ff;box-shadow:0 0 20px rgba(0,240,255,.65)}
+
+/* the toggle quip */
+.quip{
+  position:absolute;left:50%;top:58%;z-index:7;
+  transform:translate(-50%,-50%) scale(.72);
+  opacity:0;pointer-events:none;
+  font-family:'Press Start 2P',monospace;font-size:11px;line-height:1.6;text-align:center;
+  color:var(--sc3);background:var(--sc0);border:3px solid var(--sc3);
+  padding:11px 10px;white-space:nowrap;
+  box-shadow:5px 5px 0 rgba(0,0,0,.35);
+  transition:opacity .2s,transform .2s steps(3,end);
+}
+.quip.show{opacity:1;transform:translate(-50%,-50%) scale(1);animation:nudge .5s steps(2,end) 1}
+@keyframes nudge{
+  0%{transform:translate(-50%,-50%) scale(1) rotate(-3deg)}
+  30%{transform:translate(-50%,-50%) scale(1.06) rotate(3deg)}
+  60%{transform:translate(-50%,-50%) scale(1) rotate(-2deg)}
+  100%{transform:translate(-50%,-50%) scale(1) rotate(0)}
+}
+html[data-mode="night"] .quip{
+  background:rgba(27,7,51,.9);color:#ffe9fb;border-color:#ff2d95;
+  box-shadow:0 0 24px rgba(255,45,149,.75);text-shadow:0 0 9px #ff2d95;
+}
+@media (max-width:340px){.quip{font-size:9px}}
+
+.toast{
+  position:absolute;z-index:10;left:50%;bottom:8px;transform:translate(-50%,190%);
+  background:var(--sc3);color:var(--sc0);border:2px solid var(--sc0);
+  font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 9px;
+  transition:transform .18s steps(3,end);
+}
+html[data-mode="night"] .toast{background:#ff2d95;color:#fff;border-color:#00f0ff;box-shadow:0 0 16px rgba(255,45,149,.7)}
+.toast.up{transform:translate(-50%,0)}
+
+/* ---------------- logo + controls ---------------- */
+.logo{flex:0 0 auto;text-align:center;padding:3px 0 2px;color:#39395a}
+.logo b{font-family:'Press Start 2P',monospace;font-size:12px;font-style:italic}
+.logo i{font-size:9px;font-style:normal;vertical-align:super}
+
+.controls{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:2px 2px 6px}
+.dpad{display:grid;grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,30px);margin-left:16px}
+.dpad button,.dpad div{background:var(--dark);border:none;color:#6c6c7c;font-family:'Press Start 2P',monospace;font-size:9px;cursor:pointer;padding:0;box-shadow:0 2px 0 rgba(0,0,0,.5)}
+.dpad button:active{color:#fff;transform:translateY(1px)}
+.dpad button:focus-visible{color:#fff;outline:none}
+.dpad .u{grid-area:1/2;border-radius:5px 5px 0 0}
+.dpad .l{grid-area:2/1;border-radius:5px 0 0 5px}
+.dpad .m{grid-area:2/2}
+.dpad .r{grid-area:2/3;border-radius:0 5px 5px 0}
+.dpad .d{grid-area:3/2;border-radius:0 0 5px 5px}
+
+.ab{display:flex;gap:13px;transform:rotate(-22deg)}
+.ab button{
+  width:48px;height:48px;border-radius:50%;
+  background:linear-gradient(160deg,var(--ab),var(--ab-lo));
+  border:2px solid #48102c;color:#f4dbe6;
+  font-family:'Press Start 2P',monospace;font-size:12px;cursor:pointer;box-shadow:0 3px 0 #3a0a23;
+}
+.ab button:active{transform:translateY(2px);box-shadow:0 1px 0 #3a0a23}
+.ab button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+.startsel{
+  flex:0 0 auto;display:flex;align-items:center;gap:12px;
+  width:max-content;margin:0;padding:0;
+  transform:translateY(3px) rotate(-22deg);
+}
+.startsel button{
+  background:var(--grey);border:2px solid #5f5f68;border-radius:9px;color:#2b2b32;
+  font-family:'Press Start 2P',monospace;font-size:4px;padding:4px 8px;cursor:pointer;box-shadow:0 2px 0 #55555e;
+}
+.startsel button:active{transform:translateY(2px);box-shadow:none}
+
+/* bottom strip: email + speaker */
+.foot{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding:2px 2px 0}
+.mail{min-width:0}
+.mail .lbl{font-family:'Press Start 2P',monospace;font-size:5px;color:#6d6a62;margin-bottom:2px}
+.mail a{font-size:13px;color:#2f4f16;text-decoration:none;word-break:break-all;line-height:1}
+.mail a:hover{text-decoration:underline}
+.mail button{
+  margin-top:3px;font-family:'Press Start 2P',monospace;font-size:5px;
+  background:#8bac0f;color:#0f380f;border:2px solid #0f380f;padding:4px 6px;cursor:pointer;box-shadow:0 2px 0 #0f380f;
+}
+.mail button:active{transform:translateY(2px);box-shadow:none}
+.speaker{display:flex;gap:4px;transform:rotate(-22deg);padding:0 6px 2px;flex:0 0 auto}
+.speaker i{display:block;width:4px;height:26px;border-radius:2px;background:#a8a397;box-shadow:inset 0 0 0 1px #8b877f}
+
+/* ---------------- night: atomic grape shell ---------------- */
+html[data-mode="night"] body{background:radial-gradient(circle at 50% 42%,#2c0b48 0%,#140626 45%,#08040f 100%)}
+html[data-mode="night"] .gb{
+  backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.34), inset 0 -3px 0 rgba(0,0,0,.28),
+             0 0 38px rgba(178,64,255,.5), 0 0 90px rgba(255,45,149,.26);
+}
+html[data-mode="night"] .bezel{background:linear-gradient(160deg,rgba(66,32,102,.82),rgba(24,8,44,.9))}
+html[data-mode="night"] .slider{background:linear-gradient(180deg,rgba(198,148,255,.5),rgba(96,44,158,.55))}
+html[data-mode="night"] .knob{background:repeating-linear-gradient(90deg,rgba(232,204,255,.75) 0 2px,rgba(138,86,200,.75) 2px 4px);border-color:rgba(220,180,255,.5)}
+html[data-mode="night"] .top-txt,
+html[data-mode="night"] .caption,
+html[data-mode="night"] .batt span,
+html[data-mode="night"] .mail .lbl{color:#cfa9f5}
+html[data-mode="night"] .logo{color:#e6c9ff;text-shadow:0 0 10px rgba(200,120,255,.7)}
+html[data-mode="night"] .dpad button,
+html[data-mode="night"] .dpad div{color:#dcbcff;box-shadow:0 2px 0 rgba(0,0,0,.45)}
+html[data-mode="night"] .ab button{border-color:rgba(255,160,224,.6);color:#fff;box-shadow:0 3px 0 rgba(64,8,46,.7)}
+html[data-mode="night"] .startsel button{border-color:rgba(214,172,255,.6);color:#f2e2ff;box-shadow:0 2px 0 rgba(80,40,130,.6)}
+html[data-mode="night"] .speaker i{background:rgba(206,164,255,.42);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+html[data-mode="night"] .mail a{color:#00f0ff;text-shadow:0 0 7px rgba(0,240,255,.65)}
+html[data-mode="night"] .mail button{background:#ff2d95;color:#fff;border-color:#00f0ff;box-shadow:0 2px 0 #00f0ff}
+
+@media (max-height:640px){
+  .ab button{width:42px;height:42px;font-size:11px}
+  .dpad{grid-template-columns:repeat(3,26px);grid-template-rows:repeat(3,26px);margin-left:10px}
+  .speaker i{height:20px}
+  .startsel{gap:9px}
+  .gb > .vol{height:48px}
+  .tab{padding:9px 0}
+  .deal{font-size:7px;padding:5px 4px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<main class="gb">
+
+  <div class="guts" aria-hidden="true">
+    <div class="board"></div>
+    <div class="chip" style="left:16%;top:63%;width:34%;height:9%"></div>
+    <div class="chip" style="left:58%;top:66%;width:18%;height:5%"></div>
+    <div class="chip" style="left:12%;top:78%;width:14%;height:4%"></div>
+    <div class="chip" style="left:62%;top:80%;width:22%;height:6%"></div>
+    <div class="cap" style="left:44%;top:74%;width:16px;height:16px"></div>
+    <div class="cap" style="left:80%;top:60%;width:11px;height:11px"></div>
+    <div class="cap" style="left:8%;top:88%;width:9px;height:9px"></div>
+  </div>
+
+  <div class="top">
+    <span class="top-txt"><svg class="ico" viewBox="0 0 10 10" aria-hidden="true"><path d="M6.6.9A4.1 4.1 0 1 0 9.2 8 4.7 4.7 0 0 1 6.6.9z"/></svg>OFF</span>
+    <button class="slider" id="power" aria-label="Screen mode: on is Game Boy green, off is neon night" aria-pressed="true"><span class="knob"></span></button>
+    <span class="top-txt">ON<svg class="ico sun" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="2.4"/><path d="M4.5 0h1v1.6h-1zM4.5 8.4h1V10h-1zM0 4.5h1.6v1H0zM8.4 4.5H10v1H8.4zM1 1.7l.7-.7 1.2 1.2-.7.7zM7.1 7.8l.7-.7L9 8.3l-.7.7zM8.3 1l.7.7-1.2 1.2-.7-.7zM2.2 7.1l.7.7L1.7 9 1 8.3z"/></svg></span>
+    <span class="top-rule"></span>
+    <span class="top-txt mode" id="modeTxt">DAY MODE</span>
+  </div>
+
+  <button class="vol" id="vol" aria-label="Sound effects: on" aria-pressed="true" title="Sound effects on/off">
+    <span class="ribs" aria-hidden="true"></span>
+  </button>
+
+  <div class="bezel">
+    <div class="stripes" aria-hidden="true"><i></i><i></i></div>
+
+    <div class="lcd-row">
+      <div class="batt"><span class="led" id="led"></span><span>BATTERY</span></div>
+
+      <div class="lcd" id="lcd">
+        <div class="bg" aria-hidden="true">
+          <div class="orb"></div>
+          <div class="stars" id="stars"></div>
+          <div class="clouds" id="clouds"></div>
+          <div class="ground"></div>
+          <div class="palms">
+            <svg class="p1" viewBox="0 0 60 100"><path d="M28 100 L26 44 L34 44 L32 100z"/><path d="M30 42 C10 30 4 34 0 40 C8 30 20 26 30 38z"/><path d="M30 42 C50 30 56 34 60 40 C52 30 40 26 30 38z"/><path d="M30 40 C24 20 14 14 6 14 C20 16 28 26 30 38z"/><path d="M30 40 C36 20 46 14 54 14 C40 16 32 26 30 38z"/></svg>
+            <svg class="p2" viewBox="0 0 60 100"><path d="M28 100 L26 44 L34 44 L32 100z"/><path d="M30 42 C10 30 4 34 0 40 C8 30 20 26 30 38z"/><path d="M30 42 C50 30 56 34 60 40 C52 30 40 26 30 38z"/><path d="M30 40 C24 20 14 14 6 14 C20 16 28 26 30 38z"/><path d="M30 40 C36 20 46 14 54 14 C40 16 32 26 30 38z"/></svg>
+          </div>
+        </div>
+
+        <canvas id="rain"></canvas>
+
+        <div class="ui" id="ui">
+          <div class="hud"><b>PAYBOY</b><span>payboy.brave</span></div>
+          <nav class="tabs" role="tablist" aria-label="Sections">
+            <button class="tab" role="tab" data-view="fiat" aria-selected="true" style="flex:4">CASH</button>
+            <button class="tab" role="tab" data-view="crypto" aria-selected="false" style="flex:5">COINS</button>
+            <button class="tab" role="tab" data-view="mail" aria-selected="false" style="flex:7">CONTACT</button>
+            <button class="tab" role="tab" data-view="exchange" aria-selected="false" style="flex:4">JOIN</button>
+          </nav>
+          <div class="view" id="view"></div>
+          <div class="deal" id="deal"></div>
+        </div>
+
+        <div class="swap" id="swap"><span class="glyph" id="glyph"></span><span class="cart"></span></div>
+        <div class="boot" id="boot"><span class="boot-word">PAYBOY</span></div>
+        <div class="quip" id="quip">You owe me money?!</div>
+        <div class="toast" id="toast">COPIED</div>
+      </div>
+    </div>
+
+    <div class="caption">DOT MATRIX WITH CRYPTO SOUND</div>
+  </div>
+
+  <div class="logo"><b>PAYBOY</b><i>TM</i></div>
+
+  <div class="controls">
+    <div class="dpad" role="group" aria-label="D-pad">
+      <button class="u" data-key="up" aria-label="Up">▲</button>
+      <button class="l" data-key="left" aria-label="Left">◀</button>
+      <div class="m" aria-hidden="true"></div>
+      <button class="r" data-key="right" aria-label="Right">▶</button>
+      <button class="d" data-key="down" aria-label="Down">▼</button>
+    </div>
+    <div class="startsel">
+      <button data-key="select" id="selectBtn" aria-label="Select, move to next item">SELECT</button>
+      <button data-key="start" aria-label="Start, open the selected item">START</button>
+    </div>
+
+    <div class="ab">
+      <button data-key="b" aria-label="B, back to Cash">B</button>
+      <button data-key="a" aria-label="A, open the selected item">A</button>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="mail">
+      <div class="lbl">CONTACT</div>
+      <a href="mailto:bartlett.d.markel@protonmail.com">bartlett.d.markel@protonmail.com</a><br>
+      <button id="copyMail">COPY EMAIL</button>
+    </div>
+    <div class="speaker" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+</main>
+
+<script>
+/* ==========================================================
+   EDIT EVERYTHING IN HERE — nothing else needs touching.
+   ========================================================== */
+const CONFIG = {
+  email:"bartlett.d.markel@protonmail.com",
+  github:"https://github.com/bartlettdmarkel",
+  deal:["DEAL!! PAY 10% LESS","IF PAID IN CRYPTO."],
+  quip:"You owe me money?!",
+  fiat:[
+    {name:"PayPal",   sub:"@BartlettMarkel",  url:"https://paypal.me/BartlettMarkel"},
+    {name:"Venmo",    sub:"@Bartlett-Markel", url:"https://venmo.com/u/Bartlett-Markel"},
+    {name:"Cash App", sub:"$BartlettMarkel",  url:"https://cash.app/$BartlettMarkel"}
+  ],
+  crypto:[
+    {tick:"BTC",  name:"Bitcoin",  addr:"bc1q36zsx0lhkhfpd0sgjw7d345cu365d30d8uu3wv"},
+    {tick:"ETH",  name:"Ethereum", addr:"0xDc9bb10E2c3F8daF84dcadAff5882BBD2e02A132"},
+    {tick:"SOL",  name:"Solana",   addr:"CpbAcVrcFztFeZ6WSyXf2Fz4hcWEFe3MfsYwMPN2Qm5M"}
+  ],
+  exchanges:[
+    {name:"Coinbase", sub:"Easiest first buy",   url:"https://coinbase.com/join/9EGGTWM?src=referral-link"},
+    {name:"Kraken",   sub:"Low fees, staking",   url:"https://invite.kraken.com/JDNW/pnzd3dep"},
+    {name:"Gemini",   sub:"US-regulated",        url:"https://exchange.gemini.com/register?referral=gdyvkdcx&type=referral&unified=true"}
+  ]
+};
+
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- sound ---------- */
+let ac=null, muted=false;
+function blip(f=520,d=.06,t="square",v=.05){
+  if(muted) return;
+  try{
+    ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(), g=ac.createGain();
+    o.type=t; o.frequency.value=f;
+    g.gain.setValueAtTime(v,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);
+    o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+d);
+  }catch(e){}
+}
+const chime=()=>{blip(784,.05);setTimeout(()=>blip(1046,.09),60)};
+const ping =()=>{blip(1046,.5,'sine',.09);setTimeout(()=>blip(1568,.5,'sine',.05),30)};
+const nag  =()=>{blip(988,.07);setTimeout(()=>blip(740,.07),95);setTimeout(()=>blip(494,.22,'sawtooth',.045),195)};
+const cartSnd=()=>{blip(190,.09,'sawtooth',.07);setTimeout(()=>blip(85,.15,'square',.06),75);setTimeout(()=>blip(1180,.03,'square',.03),215)};
+
+/* ---------- cascade: $  ₿  1  0 ---------- */
+const canvas=document.getElementById('rain'), ctx=canvas.getContext('2d');
+const GLYPHS=['$','$','₿','1','0','1','0','Ξ'];
+let cols=[], cw=10, W=0, H=0;
+function sizeRain(){
+  const r=canvas.getBoundingClientRect();
+  W=canvas.width=Math.max(1,r.width); H=canvas.height=Math.max(1,r.height);
+  cw=11; const n=Math.ceil(W/cw);
+  cols=Array.from({length:n},()=>Math.random()*-H);
+}
+function drawRain(){
+  const night=document.documentElement.dataset.mode==='night';
+  ctx.fillStyle = night ? 'rgba(27,7,51,.22)' : 'rgba(155,188,15,.25)';
+  ctx.fillRect(0,0,W,H);
+  ctx.font='13px "VT323", monospace';
+  for(let i=0;i<cols.length;i++){
+    const ch=GLYPHS[(Math.random()*GLYPHS.length)|0];
+    const x=i*cw, y=cols[i];
+    ctx.fillStyle = night ? (i%3?'#00f0ff':'#ff2d95') : '#0f380f';
+    ctx.fillText(ch,x,y);
+    cols[i]= y>H+Math.random()*160 ? 0 : y+11;
+  }
+}
+let rainTimer=null;
+function startRain(){ if(reduced||rainTimer) return; sizeRain(); rainTimer=setInterval(drawRain,70); }
+addEventListener('resize',()=>{ if(rainTimer) sizeRain(); });
+
+/* ---------- boot sequence ---------- */
+const bootEl=document.getElementById('boot'), uiEl=document.getElementById('ui'), rainEl=canvas;
+const quipEl=document.getElementById('quip');
+const QUIP_HOLD=1900;              /* how long the joke sits on screen, ms */
+
+let bootTimers=[];
+const later=(fn,ms)=>bootTimers.push(setTimeout(fn,ms));
+const clearBoot=()=>{bootTimers.forEach(clearTimeout);bootTimers=[]};
+
+function boot(fast){
+  clearBoot();
+  quipEl.classList.remove('show');
+
+  if(reduced){
+    bootEl.classList.add('done'); uiEl.classList.remove('hidden'); startRain();
+    quipEl.classList.add('show'); nag();
+    later(()=>quipEl.classList.remove('show'),QUIP_HOLD);
+    return;
+  }
+
+  const t = fast ? .6 : 1;
+  bootEl.classList.remove('done'); bootEl.classList.remove('drop');
+  uiEl.classList.add('hidden'); rainEl.classList.add('intro');
+  void bootEl.offsetWidth;
+  bootEl.classList.add('drop');
+  later(ping, 950*t);
+  later(()=>{ bootEl.classList.add('done'); startRain(); }, 1150*t);
+
+  /* the joke lands under the cascade — on first load and on every day/night flip */
+  const inAt = 1150*t + 280;
+  later(()=>{ quipEl.classList.add('show'); nag(); }, inAt);
+  later(()=>quipEl.classList.remove('show'), inAt+QUIP_HOLD);
+  later(()=>{ rainEl.classList.remove('intro'); uiEl.classList.remove('hidden'); }, inAt+QUIP_HOLD+320);
+}
+
+/* ---------- decoration ---------- */
+const stars=document.getElementById('stars');
+for(let i=0;i<44;i++){
+  const s=document.createElement('div'); s.className='star';
+  s.style.left=Math.random()*100+'%'; s.style.top=Math.random()*55+'%';
+  s.style.animationDelay=(Math.random()*2.6)+'s'; stars.appendChild(s);
+}
+const clouds=document.getElementById('clouds');
+[[10,32],[30,46],[50,38]].forEach(([top,dur],i)=>{
+  const c=document.createElement('div'); c.className='cloud';
+  c.style.top=top+'%'; c.style.animationDuration=dur+'s'; c.style.animationDelay=(-i*9)+'s';
+  clouds.appendChild(c);
+});
+
+/* ---------- power: ON = Game Boy, OFF = Miami night ---------- */
+const html=document.documentElement, power=document.getElementById('power');
+html.dataset.mode='day';
+const modeTxt=document.getElementById('modeTxt');
+function toggleTheme(){
+  const night=html.dataset.mode==='night';
+  html.dataset.mode = night?'day':'night';
+  power.setAttribute('aria-pressed',String(night));
+  modeTxt.textContent = night?'DAY MODE':'NIGHT MODE';
+  blip(night?880:200,.18,'triangle');
+  boot(true);
+}
+power.addEventListener('click',toggleTheme);
+
+/* ---------- views ---------- */
+const ORDER=['fiat','crypto','mail','exchange'];
+const view=document.getElementById('view'), toast=document.getElementById('toast');
+let tab='fiat', cursor=0;
+
+function items(t){
+  if(t==='fiat')   return CONFIG.fiat.map(f=>({name:f.name,sub:f.sub,tag:"OPEN",act:{open:f.url}}));
+  if(t==='crypto') return CONFIG.crypto.map(c=>({name:c.tick+" "+c.name,sub:c.addr,tag:"COPY",act:{copy:c.addr}}));
+  if(t==='mail')   return [
+    {name:"EMAIL",    sub:CONFIG.email,          tag:"COPY",act:{copy:CONFIG.email}},
+    {name:"MAIL APP", sub:"Start a message now", tag:"OPEN",act:{open:"mailto:"+CONFIG.email}},
+    {name:"GITHUB",   sub:CONFIG.github.replace(/^https?:\/\//,''), tag:"OPEN",act:{open:CONFIG.github}}
+  ];
+  return CONFIG.exchanges.map(x=>({name:x.name,sub:x.sub,tag:"JOIN",act:{open:x.url}}));
+}
+const HEADS={
+  fiat:["CASH APPS","Tap anything, or use the pad: SELECT moves, START opens."],
+  crypto:["WALLETS","Copy the address, paste it in your wallet."],
+  mail:["CONTACT","Copy my email, open your mail app, or see what I'm building."],
+  exchange:["SIGN UP","Need coin first? Start here."]
+};
+const NOTES={
+  crypto:"Send on the network shown. Nothing else reaches me.",
+  exchange:"Referral links \u2014 I may earn a bonus."
+};
+
+/* ---------- pixel cartridge glyphs ---------- */
+const ICONS={
+  fiat:{px:6,rows:[
+    "....#....",
+    "..#####..",
+    ".##.#.##.",
+    ".#..#....",
+    ".##.#....",
+    "..#####..",
+    "....#.##.",
+    "....#..#.",
+    ".##.#.##.",
+    "..#####..",
+    "....#...."
+  ]},
+  crypto:{px:6,rows:[
+    "..#.#....",
+    ".######..",
+    ".#..#..#.",
+    ".#..#..#.",
+    ".######..",
+    ".#..#..#.",
+    ".#..#..#.",
+    ".######..",
+    "..#.#...."
+  ]},
+  mail:{px:6,rows:[
+    "###########",
+    "##.......##",
+    "#.##...##.#",
+    "#...#.#...#",
+    "#....#....#",
+    "#.........#",
+    "#.........#",
+    "###########"
+  ]},
+  exchange:{px:6,rows:[
+    "#######..#.",
+    "#.....#.###",
+    "#.###.###..",
+    "#.....##...",
+    "#.###.#....",
+    "#.....#....",
+    "#.###.#....",
+    "#.....#....",
+    "#.###.#....",
+    "#.....#....",
+    "#######...."
+  ]}
+};
+const TONES={fiat:[880,1175],crypto:[988,1319],mail:[740,988],exchange:[622,831]};
+
+function pixelIcon(def){
+  const w=def.rows[0].length, d=document.createElement('div');
+  d.className='picon';
+  d.style.gridTemplateColumns=`repeat(${w},${def.px}px)`;
+  d.style.gridAutoRows=def.px+'px';
+  def.rows.forEach(r=>{ for(const ch of r){
+    const cell=document.createElement('i');
+    if(ch==='#') cell.className='on';
+    d.appendChild(cell);
+  }});
+  return d;
+}
+
+function render(){
+  const [h,hint]=HEADS[tab];
+  view.innerHTML=`<div class="card"><h2>${h}</h2><p class="hint">${hint}</p>`+
+    items(tab).map((it,i)=>`
+      <div class="row" data-i="${i}" data-sel="${i===cursor?1:0}">
+        <div class="row-top">
+          <span class="caret">&gt;</span>
+          <div class="row-name">${it.name}</div>
+          <span class="tag">${it.tag}</span>
+        </div>
+        <div class="row-sub">${it.sub}</div>
+      </div>`).join('')+
+    (NOTES[tab]?`<p class="note">${NOTES[tab]}</p>`:'')+`</div>`;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',String(t.dataset.view===tab)));
+}
+const swapEl=document.getElementById('swap'), glyphEl=document.getElementById('glyph');
+let swapTimers=[];
+function setTab(t,quiet){
+  if(!HEADS[t]) return;
+  if(quiet || t===tab || reduced){
+    tab=t; cursor=0; render(); if(!quiet) cartSnd();
+    return;
+  }
+  swapTimers.forEach(clearTimeout); swapTimers=[];
+
+  glyphEl.innerHTML=''; glyphEl.appendChild(pixelIcon(ICONS[t]));
+  cartSnd();
+  const [a,b]=TONES[t]||[880,1175];
+  swapTimers.push(setTimeout(()=>{blip(a,.07,'square',.05);setTimeout(()=>blip(b,.12,'square',.05),85);},300));
+
+  swapEl.classList.remove('go'); void swapEl.offsetWidth; swapEl.classList.add('go');
+  swapTimers.push(setTimeout(()=>{ tab=t; cursor=0; render(); },200));
+  swapTimers.push(setTimeout(()=>swapEl.classList.remove('go'),700));
+}
+function moveCursor(step){
+  const n=items(tab).length; cursor=(cursor+step+n)%n; render(); blip(330,.03);
+  view.querySelector('.row[data-sel="1"]')?.scrollIntoView({block:'nearest'});
+}
+function popToast(m){ toast.textContent=m; toast.classList.add('up');
+  clearTimeout(popToast.t); popToast.t=setTimeout(()=>toast.classList.remove('up'),1300); }
+const buzz=(ms=18)=>{ try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} };
+function copy(txt){
+  const ok=()=>{chime();buzz();popToast('COPIED');};
+  if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(ok).catch(()=>popToast('COPY FAILED')); }
+  else{ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
+        try{document.execCommand('copy');ok();}catch(_){popToast('COPY FAILED');} ta.remove(); }
+}
+function activate(i){
+  const it=items(tab)[i]; if(!it) return;
+  if(it.act.goto) return setTab(it.act.goto);
+  if(it.act.copy) return copy(it.act.copy);
+  if(it.act.open){ blip(660,.08); window.open(it.act.open,'_blank','noopener'); }
+}
+
+/* ---------- input ---------- */
+function press(key){
+  const i=ORDER.indexOf(tab);
+  if(key==='up')     return moveCursor(-1);
+  if(key==='down')   return moveCursor(1);
+  if(key==='left')   return setTab(ORDER[(i-1+ORDER.length)%ORDER.length]);
+  if(key==='right')  return setTab(ORDER[(i+1)%ORDER.length]);
+  if(key==='a')      return activate(cursor);
+  if(key==='start')  return activate(cursor);   /* START opens what's selected */
+  if(key==='select') return moveCursor(1);      /* SELECT steps to the next one */
+  if(key==='b')      return setTab('fiat');
+}
+
+/* ---------- side volume wheel: sound effects on/off ---------- */
+const volEl=document.getElementById('vol');
+html.dataset.snd='on';
+function toggleSound(){
+  muted=!muted;
+  html.dataset.snd = muted?'off':'on';
+  volEl.setAttribute('aria-pressed',String(!muted));
+  volEl.setAttribute('aria-label','Sound effects: '+(muted?'off':'on'));
+  popToast(muted?'SOUND OFF':'SOUND ON');
+  if(!muted){ blip(523,.05); setTimeout(()=>blip(784,.08),70); }
+}
+volEl.addEventListener('click',toggleSound);
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-key]'); if(b) return press(b.dataset.key);
+  const t=e.target.closest('.tab');       if(t) return setTab(t.dataset.view);
+  const r=e.target.closest('.row');       if(r){ cursor=Number(r.dataset.i); render(); activate(cursor); }
+});
+document.getElementById('copyMail').addEventListener('click',()=>copy(CONFIG.email));
+
+const KEYS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',
+            Enter:'a',z:'a',x:'b',Escape:'b',' ':'start',s:'select'};
+document.addEventListener('keydown',e=>{
+  const k=KEYS[e.key]||KEYS[e.key.toLowerCase()];
+  if(k){ e.preventDefault(); press(k); }
+  if(e.key.toLowerCase()==='p') toggleTheme();
+  if(e.key.toLowerCase()==='m') toggleSound();
+});
+
+document.getElementById('deal').innerHTML = CONFIG.deal.join('<br>');
+quipEl.textContent = CONFIG.quip;
+
+render();
+boot(false);
+</script>
+</body>
+</html>
