@@ -2,7 +2,7 @@
 
 A payment landing page built as a working Game Boy.
 
-**Live:** https://bartlettdmarkel.github.io/payboy/
+**Live:** https://bartlettdmarkel.github.io/payboy.brave/
 
 Tap a tab, tap a row, and it copies an address or opens a payment link. The
 D-pad, A/B, START and SELECT all work. The power switch on top flips the whole
