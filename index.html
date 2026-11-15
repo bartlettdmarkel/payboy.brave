@@ -2,10 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#c6c0b4">
 <title>PAYBOY // payboy.brave</title>
 <meta name="description" content="Pay Bart. Cash apps, crypto wallets, exchange sign-ups.">
+<meta property="og:title" content="PAYBOY">
+<meta property="og:description" content="Pay Bart. Cash apps, crypto wallets, exchange sign-ups.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://bartlettdmarkel.github.io/payboy.brave/">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect width="8" height="8" fill="%230f380f"/><path fill="%239bbc0f" d="M2 1h4v1H2zM2 2h1v5H2zM5 2h1v2H5zM3 4h3v1H3z"/></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
@@ -49,7 +55,7 @@ body{
 
 /* ---------------- shell ---------------- */
 .gb{
-  width:min(392px,100%);height:100%;
+  width:min(392px,100%);height:min(100%,840px);
   position:relative;
   display:flex;flex-direction:column;
   background:linear-gradient(157deg,var(--shell-hi),var(--shell) 34%,var(--shell-lo));
@@ -268,9 +274,12 @@ html[data-mode="night"] .card{background:rgba(27,7,51,.72);color:#ffe9fb;border-
 .hint{font-size:17px;line-height:1.1;opacity:.9;margin-bottom:7px}
 
 .row{
-  display:block;cursor:pointer;
+  display:block;width:100%;cursor:pointer;text-align:left;
+  background:none;color:inherit;font:inherit;
   border:3px solid var(--sc2);padding:7px 8px;margin-bottom:6px;
 }
+.row:focus-visible{outline:2px solid var(--sc3);outline-offset:2px}
+html[data-mode="night"] .row:focus-visible{outline-color:#00f0ff}
 .row-top{display:flex;align-items:center;gap:8px}
 html[data-mode="night"] .row{border-color:rgba(0,240,255,.5)}
 .row[data-sel="1"]{background:var(--sc3);color:var(--sc0);border-color:var(--sc3)}
@@ -278,7 +287,7 @@ html[data-mode="night"] .row[data-sel="1"]{background:#00f0ff;color:#1b0733;bord
 .row[data-sel="1"] .caret{visibility:visible}
 .caret{visibility:hidden;font-family:'Press Start 2P',monospace;font-size:10px;flex:0 0 11px}
 .row-name{flex:1;min-width:0;font-family:'Press Start 2P',monospace;font-size:10px;line-height:1.2}
-.row-sub{font-size:19px;line-height:1.05;word-break:break-all;text-shadow:1px 0 0 currentColor;margin-top:5px}
+.row-sub{display:block;font-size:19px;line-height:1.05;word-break:break-all;text-shadow:1px 0 0 currentColor;margin-top:5px}
 .tag{font-family:'Press Start 2P',monospace;font-size:8px;border:2px solid currentColor;padding:4px 5px;flex:0 0 auto}
 .note{font-size:15px;line-height:1.1;opacity:.85;margin-top:6px;border-top:2px dashed currentColor;padding-top:5px}
 @media (max-width:340px){
@@ -525,17 +534,17 @@ html[data-mode="night"] .mail button{background:#ff2d95;color:#fff;border-color:
           </div>
         </div>
 
-        <canvas id="rain"></canvas>
+        <canvas id="rain" aria-hidden="true"></canvas>
 
         <div class="ui" id="ui">
-          <div class="hud"><b>PAYBOY</b><span>payboy.brave</span></div>
+          <div class="hud"><b>PAYBOY</b><span id="hudSite">payboy.brave</span></div>
           <nav class="tabs" role="tablist" aria-label="Sections">
-            <button class="tab" role="tab" data-view="fiat" aria-selected="true" style="flex:4">CASH</button>
-            <button class="tab" role="tab" data-view="crypto" aria-selected="false" style="flex:5">COINS</button>
-            <button class="tab" role="tab" data-view="mail" aria-selected="false" style="flex:7">CONTACT</button>
-            <button class="tab" role="tab" data-view="exchange" aria-selected="false" style="flex:4">JOIN</button>
+            <button class="tab" role="tab" id="tab-fiat" aria-controls="view" data-view="fiat" aria-selected="true" style="flex:4">CASH</button>
+            <button class="tab" role="tab" id="tab-crypto" aria-controls="view" data-view="crypto" aria-selected="false" tabindex="-1" style="flex:5">COINS</button>
+            <button class="tab" role="tab" id="tab-mail" aria-controls="view" data-view="mail" aria-selected="false" tabindex="-1" style="flex:7">CONTACT</button>
+            <button class="tab" role="tab" id="tab-exchange" aria-controls="view" data-view="exchange" aria-selected="false" tabindex="-1" style="flex:4">JOIN</button>
           </nav>
-          <div class="view" id="view"></div>
+          <div class="view" id="view" role="tabpanel" aria-labelledby="tab-fiat"></div>
           <div class="deal" id="deal"></div>
         </div>
 
@@ -573,7 +582,7 @@ html[data-mode="night"] .mail button{background:#ff2d95;color:#fff;border-color:
   <div class="foot">
     <div class="mail">
       <div class="lbl">CONTACT</div>
-      <a href="mailto:bartlett.d.markel@protonmail.com">bartlett.d.markel@protonmail.com</a><br>
+      <a href="mailto:bartlett.d.markel@protonmail.com" id="mailLink">bartlett.d.markel@protonmail.com</a><br>
       <button id="copyMail">COPY EMAIL</button>
     </div>
     <div class="speaker" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -585,6 +594,7 @@ html[data-mode="night"] .mail button{background:#ff2d95;color:#fff;border-color:
    EDIT EVERYTHING IN HERE — nothing else needs touching.
    ========================================================== */
 const CONFIG = {
+  site:"payboy.brave",
   email:"bartlett.d.markel@protonmail.com",
   github:"https://github.com/bartlettdmarkel",
   deal:["DEAL!! PAY 10% LESS","IF PAID IN CRYPTO."],
@@ -606,7 +616,9 @@ const CONFIG = {
   ]
 };
 
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rmq = matchMedia('(prefers-reduced-motion: reduce)');
+let reduced = rmq.matches;
+rmq.addEventListener?.('change', e=>{ reduced=e.matches; if(reduced) stopRain(); });
 
 /* ---------- sound ---------- */
 let ac=null, muted=false;
@@ -614,6 +626,7 @@ function blip(f=520,d=.06,t="square",v=.05){
   if(muted) return;
   try{
     ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==='suspended') ac.resume();
     const o=ac.createOscillator(), g=ac.createGain();
     o.type=t; o.frequency.value=f;
     g.gain.setValueAtTime(v,ac.currentTime);
@@ -625,14 +638,20 @@ const chime=()=>{blip(784,.05);setTimeout(()=>blip(1046,.09),60)};
 const ping =()=>{blip(1046,.5,'sine',.09);setTimeout(()=>blip(1568,.5,'sine',.05),30)};
 const nag  =()=>{blip(988,.07);setTimeout(()=>blip(740,.07),95);setTimeout(()=>blip(494,.22,'sawtooth',.045),195)};
 const cartSnd=()=>{blip(190,.09,'sawtooth',.07);setTimeout(()=>blip(85,.15,'square',.06),75);setTimeout(()=>blip(1180,.03,'square',.03),215)};
+/* a context created outside a user gesture is born suspended by autoplay policy */
+function unlockAudio(){ try{ if(ac && ac.state==='suspended') ac.resume(); }catch(e){} }
+addEventListener('pointerdown',unlockAudio);
+addEventListener('keydown',unlockAudio);
 
 /* ---------- cascade: $  ₿  1  0 ---------- */
 const canvas=document.getElementById('rain'), ctx=canvas.getContext('2d');
 const GLYPHS=['$','$','₿','1','0','1','0','Ξ'];
 let cols=[], cw=10, W=0, H=0;
 function sizeRain(){
-  const r=canvas.getBoundingClientRect();
-  W=canvas.width=Math.max(1,r.width); H=canvas.height=Math.max(1,r.height);
+  const r=canvas.getBoundingClientRect(), dpr=Math.min(devicePixelRatio||1,3);
+  W=Math.max(1,r.width); H=Math.max(1,r.height);
+  canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
   cw=11; const n=Math.ceil(W/cw);
   cols=Array.from({length:n},()=>Math.random()*-H);
 }
@@ -649,9 +668,16 @@ function drawRain(){
     cols[i]= y>H+Math.random()*160 ? 0 : y+11;
   }
 }
-let rainTimer=null;
-function startRain(){ if(reduced||rainTimer) return; sizeRain(); rainTimer=setInterval(drawRain,70); }
-addEventListener('resize',()=>{ if(rainTimer) sizeRain(); });
+/* rAF instead of setInterval: pauses for free in background tabs; the 70ms step keeps the chunky cadence */
+let rainOn=false, rainLast=0;
+function rainLoop(ts){
+  if(!rainOn) return;
+  if(ts-rainLast>=70){ rainLast=ts; drawRain(); }
+  requestAnimationFrame(rainLoop);
+}
+function startRain(){ if(reduced||rainOn) return; sizeRain(); rainOn=true; requestAnimationFrame(rainLoop); }
+function stopRain(){ rainOn=false; }
+addEventListener('resize',()=>{ if(rainOn) sizeRain(); });
 
 /* ---------- boot sequence ---------- */
 const bootEl=document.getElementById('boot'), uiEl=document.getElementById('ui'), rainEl=canvas;
@@ -662,12 +688,14 @@ let bootTimers=[];
 const later=(fn,ms)=>bootTimers.push(setTimeout(fn,ms));
 const clearBoot=()=>{bootTimers.forEach(clearTimeout);bootTimers=[]};
 
+let booting=true;
 function boot(fast){
   clearBoot();
+  booting=true;
   quipEl.classList.remove('show');
 
   if(reduced){
-    bootEl.classList.add('done'); uiEl.classList.remove('hidden'); startRain();
+    bootEl.classList.add('done'); uiEl.classList.remove('hidden'); booting=false;
     quipEl.classList.add('show'); nag();
     later(()=>quipEl.classList.remove('show'),QUIP_HOLD);
     return;
@@ -681,11 +709,21 @@ function boot(fast){
   later(ping, 950*t);
   later(()=>{ bootEl.classList.add('done'); startRain(); }, 1150*t);
 
-  /* the joke lands under the cascade — on first load and on every day/night flip */
+  /* the joke lands under the cascade */
   const inAt = 1150*t + 280;
   later(()=>{ quipEl.classList.add('show'); nag(); }, inAt);
   later(()=>quipEl.classList.remove('show'), inAt+QUIP_HOLD);
-  later(()=>{ rainEl.classList.remove('intro'); uiEl.classList.remove('hidden'); }, inAt+QUIP_HOLD+320);
+  later(()=>{ rainEl.classList.remove('intro'); uiEl.classList.remove('hidden'); booting=false; }, inAt+QUIP_HOLD+320);
+}
+
+/* quick LCD blink for theme flips — the full ceremony only plays on load */
+function themeFlash(){
+  if(booting){ boot(true); return; }
+  clearBoot();
+  if(reduced) return;
+  bootEl.classList.remove('drop'); bootEl.classList.remove('done');
+  void bootEl.offsetWidth;
+  later(()=>bootEl.classList.add('done'),240);
 }
 
 /* ---------- decoration ---------- */
@@ -706,13 +744,15 @@ const clouds=document.getElementById('clouds');
 const html=document.documentElement, power=document.getElementById('power');
 html.dataset.mode='day';
 const modeTxt=document.getElementById('modeTxt');
+const themeMeta=document.querySelector('meta[name="theme-color"]');
 function toggleTheme(){
   const night=html.dataset.mode==='night';
   html.dataset.mode = night?'day':'night';
   power.setAttribute('aria-pressed',String(night));
   modeTxt.textContent = night?'DAY MODE':'NIGHT MODE';
+  themeMeta.setAttribute('content', night?'#c6c0b4':'#140626');
   blip(night?880:200,.18,'triangle');
-  boot(true);
+  themeFlash();
 }
 power.addEventListener('click',toggleTheme);
 
@@ -811,16 +851,21 @@ function render(){
   const [h,hint]=HEADS[tab];
   view.innerHTML=`<div class="card"><h2>${h}</h2><p class="hint">${hint}</p>`+
     items(tab).map((it,i)=>`
-      <div class="row" data-i="${i}" data-sel="${i===cursor?1:0}">
-        <div class="row-top">
+      <button type="button" class="row" data-i="${i}" data-sel="${i===cursor?1:0}">
+        <span class="row-top">
           <span class="caret">&gt;</span>
-          <div class="row-name">${it.name}</div>
+          <span class="row-name">${it.name}</span>
           <span class="tag">${it.tag}</span>
-        </div>
-        <div class="row-sub">${it.sub}</div>
-      </div>`).join('')+
+        </span>
+        <span class="row-sub">${it.sub}</span>
+      </button>`).join('')+
     (NOTES[tab]?`<p class="note">${NOTES[tab]}</p>`:'')+`</div>`;
-  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',String(t.dataset.view===tab)));
+  view.setAttribute('aria-labelledby','tab-'+tab);
+  document.querySelectorAll('.tab').forEach(t=>{
+    const on=t.dataset.view===tab;
+    t.setAttribute('aria-selected',String(on));
+    t.tabIndex=on?0:-1;
+  });
 }
 const swapEl=document.getElementById('swap'), glyphEl=document.getElementById('glyph');
 let swapTimers=[];
@@ -863,6 +908,7 @@ function activate(i){
 
 /* ---------- input ---------- */
 function press(key){
+  if(booting) return;
   const i=ORDER.indexOf(tab);
   if(key==='up')     return moveCursor(-1);
   if(key==='down')   return moveCursor(1);
@@ -896,6 +942,8 @@ document.getElementById('copyMail').addEventListener('click',()=>copy(CONFIG.ema
 const KEYS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',
             Enter:'a',z:'a',x:'b',Escape:'b',' ':'start',s:'select'};
 document.addEventListener('keydown',e=>{
+  /* a focused button or link keeps native Enter/Space activation */
+  if((e.key==='Enter'||e.key===' ') && e.target.closest?.('button,a')) return;
   const k=KEYS[e.key]||KEYS[e.key.toLowerCase()];
   if(k){ e.preventDefault(); press(k); }
   if(e.key.toLowerCase()==='p') toggleTheme();
@@ -904,6 +952,10 @@ document.addEventListener('keydown',e=>{
 
 document.getElementById('deal').innerHTML = CONFIG.deal.join('<br>');
 quipEl.textContent = CONFIG.quip;
+document.getElementById('hudSite').textContent = CONFIG.site;
+const mailLink=document.getElementById('mailLink');
+mailLink.href = 'mailto:'+CONFIG.email;
+mailLink.textContent = CONFIG.email;
 
 render();
 boot(false);
